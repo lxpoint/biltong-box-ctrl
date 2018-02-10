@@ -27,12 +27,13 @@
 #define WIFI_TFT_DISPLAY_BOXCONTROLLER_HPP
 
 #include "Events.hpp"
+#include "Fan.hpp"
 #include "Sensor.hpp"
 #include "TftDisplay.hpp"
 #include "TouchScreen.hpp"
 
 #include <cstdint>
-//#include <boost/statechart/history.hpp>
+
 #include <boost/statechart/custom_reaction.hpp>
 #include <boost/statechart/in_state_reaction.hpp>
 #include <boost/statechart/state_machine.hpp>
@@ -44,6 +45,7 @@ namespace wifi_tft_display
 {
 
 
+struct SystemActive;
 struct StatusDisplay;
 struct TopLevelMenu;
 struct AwaitingInput;
@@ -59,15 +61,56 @@ struct FanMenuAutoUnpressed;
 struct FanMenuReturnPressed;
 struct FanMenuReturnUnpressed;
 
+struct FanOff;
+struct FanOn;
+
 
 //! \brief ??
-struct BoxController : boost::statechart::state_machine< BoxController, StatusDisplay >
+struct BoxController : boost::statechart::state_machine< BoxController, SystemActive >
 {
 };
 
 
 //! \brief ??
-struct StatusDisplay : boost::statechart::simple_state< StatusDisplay, BoxController >
+struct SystemActive : boost::statechart::simple_state< SystemActive, BoxController, boost::mpl::list< FanOff, StatusDisplay > >
+{
+};
+
+
+//! \brief ??
+struct FanOff : boost::statechart::simple_state< FanOff, SystemActive::orthogonal< 0 > >
+{
+	public:
+		//! \brief ??
+		FanOff()
+		{
+			Fan::instance().disable();
+		}
+
+	public:
+		//! \brief ??
+		typedef boost::statechart::transition< EvtFan, FanOn > reactions;
+};
+
+
+//! \brief ??
+struct FanOn : boost::statechart::simple_state< FanOn, SystemActive::orthogonal< 0 > >
+{
+	public:
+		//! \brief ??
+		FanOn()
+		{
+			Fan::instance().enable();
+		}
+
+	public:
+		//! \brief ??
+		typedef boost::statechart::transition< EvtFan, FanOff > reactions;
+};
+
+
+//! \brief ??
+struct StatusDisplay : boost::statechart::simple_state< StatusDisplay, SystemActive::orthogonal< 1 > >
 {
 	public:
 		//! \brief ??
@@ -100,7 +143,7 @@ struct StatusDisplay : boost::statechart::simple_state< StatusDisplay, BoxContro
 
 
 //! \brief ??
-struct TopLevelMenu : boost::statechart::simple_state< TopLevelMenu, BoxController, AwaitingInput >
+struct TopLevelMenu : boost::statechart::simple_state< TopLevelMenu, SystemActive::orthogonal< 1 >, AwaitingInput >
 {
 	public:
 		//! \brief ??
@@ -210,7 +253,7 @@ struct ButtonTemperaturePressed : boost::statechart::simple_state< ButtonTempera
 
 
 //! \brief ??
-struct FanMenu : boost::statechart::simple_state< FanMenu, BoxController, boost::mpl::list< FanMenuPowerUnpressed, FanMenuAutoUnpressed, FanMenuReturnUnpressed > >
+struct FanMenu : boost::statechart::simple_state< FanMenu, SystemActive::orthogonal< 1 >, boost::mpl::list< FanMenuPowerUnpressed, FanMenuAutoUnpressed, FanMenuReturnUnpressed > >
 {
 	public:
 		//! \brief ??
@@ -289,6 +332,7 @@ struct FanMenuPowerPressed : boost::statechart::simple_state<
 		FanMenuPowerPressed()
 		{
 			TftDisplay::instance().btnPowerPressed();
+			Fan::instance().enable();
 		}
 
 	public:
@@ -306,6 +350,7 @@ struct FanMenuPowerUnpressed : boost::statechart::simple_state<
 		FanMenuPowerUnpressed()
 		{
 			TftDisplay::instance().btnPowerUnpressed();
+			Fan::instance().disable();
 		}
 
 	public:

@@ -52,6 +52,11 @@ struct EvtChangeMode : boost::statechart::event< EvtChangeMode >
 };
 
 //! \brief ??
+struct EvtFan : boost::statechart::event< EvtFan >
+{
+};
+
+//! \brief ??
 struct EvtScreenPressed : boost::statechart::event< EvtScreenPressed >
 {
 };
